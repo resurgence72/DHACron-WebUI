@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>tty-审计</title>
+</head>
+<link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/3.3.0/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../css/bootstrap-select.min.css">
+<link rel="stylesheet" href="../css/general.css">
+<link href="../css/asciinema-player.min.css" rel="stylesheet">
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="page-header">
+                <h1>Crontab 管理 <small>Crontab Manager</small></h1>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-footer">
+
+            <div class="row">
+                <div class="col-md-12">
+                    <h4 id="total-cron" class="col-md-4"></h4>
+                    <h4 id="success-cron" style="color: green;" class="col-md-4"></h4>
+                    <h4 id="enabled-cron" class="col-md-4"></h4>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <h4 id="percent" style="color: red;" class="col-md-4"></h4>
+                    <h4 id="error-cron" style="color: red;" class="col-md-4"></h4>
+                    <h4 id="disabled-cron" class="col-md-4"></h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="#">功能列表</a>
+                </div>
+
+                <ul class="nav nav-tabs">
+                    <li role="presentation"><a href="/html/index.html">定时任务管理</a></li>
+                    <li role="presentation"><a href="/html/config.html">配置管理</a></li>
+                    <li role="presentation" ><a href="/html/err_log.html">执行日志</a></li>
+                    <li role="presentation" class="active"><a href="#">tty-审计</a></li>
+                </ul>
+
+            </div>
+        </div>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-default" style="margin-top: 20px">
+                <div class="panel-body">
+                    <table id="audit-list" class="table table-hover" style='table-layout:fixed;'>
+                        <thead>
+                        <tr>
+                            <th class="col-md-2">源IP</th>
+                            <th class="col-md-2">操作开始时间</th>
+                            <th class="col-md-2">操作结束时间</th>
+                            <th class="col-md-3">持续时间</th>
+                            <th class="col-md-1">审计</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="audit-model" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content" style="word-wrap:break-word;">
+                <div class="modal-body" id="play">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script src="../js/jquery.min.js"></script>
+<script src="../js/bootstrap.min.js"></script>
+<script src="../js/sweetalert.min.js"></script>
+<script src="../js/moment.min.js"></script>
+<script src="../js/bootstrap-select.min.js"></script>
+<script src="../js/general.js"></script>
+<script src="../js/bootstrap-notify.min.js"></script>
+<script src="../js/asciinema-player.min.js"></script>
+<script>
+    $(document).ready(function () {
+        function dateFormat(timestamp) {
+            return new moment(timestamp * 1000).format('YYYY-MM-DD HH:mm:ss')
+        }
+
+        let tbody = $("#audit-list tbody");
+
+        $.ajax({
+            url: '/audit/audit-list',
+            type: 'get',
+            dataType: 'json',
+            success: function (resp) {
+                if (resp.errno != 0) {
+                    return
+                }
+                var auditList = resp.data;
+                // 遍历任务填充table
+                for (var i = 0; i < auditList.length; ++i) {
+                    var audit = auditList[i];
+                    var tr = $("<tr>")
+
+                    let startTime = dateFormat(audit.startConnTime)
+                    let endTime = dateFormat(audit.endConnTime)
+                    let filePath = "/audit-record/" + audit.auditFilePath.split('/').pop()
+
+                    tr.append($('<td class="audit-ip">').html(audit.ip));
+                    tr.append($('<td class="audit-startTime">').html(startTime));
+                    tr.append($('<td  class="audit-endTime">').html(endTime));
+                    tr.append($('<td class="audit-duration">').html(audit.duration));
+                    var toolbar = $('<div class="btn-toolbar">')
+                        .append('<button path="' + filePath + '" class="btn btn-info show-audit">复现</button>')
+
+                    tr.append($('<td>').append(toolbar))
+                    tbody.append(tr)
+                }
+            }
+        });
+
+        $('#audit-list').on('click', '.show-audit', function () {
+            let path = $(this).attr('path')
+            play(path)
+        })
+
+        // 播放录像
+        function play(path) {
+            $('#play').html(
+                '<asciinema-player id="play" title="tty Record" author="haoyang.wu" src="' + path + '"speed="2"' +
+                'idle-time-limit="2" fit="both" font-size="medium" poster="data:text/plain,\x1b[1;32m' + "time" +
+                '\x1b[1;0m用户\x1b[1;32m' + "user" +
+                '\x1b[1;0m连接主机\x1b[1;32m' + "host" +
+                '\x1b[1;0m的录像记录"></asciinema-player>'
+            )
+            $('#audit-model').modal('show');
+        }
+    })
+</script>
+</html>

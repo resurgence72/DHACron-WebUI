@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>err Log</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/3.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/bootstrap-select.min.css">
+    <link rel="stylesheet" href="../css/bootstrap-switch.min.css">
+    <link rel="stylesheet" href="../css/general.css">
+    <style>
+        .table tbody tr td {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="page-header">
+                <h1>Crontab 管理 <small>Crontab Manager</small></h1>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-footer">
+
+            <div class="row">
+                <div class="col-md-12">
+                    <h4 id="total-cron" class="col-md-4"></h4>
+                    <h4 id="success-cron" style="color: green;" class="col-md-4"></h4>
+                    <h4 id="enabled-cron" class="col-md-4"></h4>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <h4 id="percent" style="color: red;" class="col-md-4"></h4>
+                    <h4 id="error-cron" style="color: red;" class="col-md-4"></h4>
+                    <h4 id="disabled-cron" class="col-md-4"></h4>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="#">功能列表</a>
+                </div>
+
+                <ul class="nav nav-tabs">
+                    <li role="presentation"><a href="/html/index.html">定时任务管理</a></li>
+                    <li role="presentation"><a href="/html/config.html">配置管理</a></li>
+                    <li role="presentation" class="active"><a href="#">执行日志</a></li>
+                    <li role="presentation"><a href="/html/tty-audit.html">tty-审计</a></li>
+                </ul>
+
+            </div>
+        </div>
+    </nav>
+
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-default" style="margin-top: 20px">
+                <div class="panel-body">
+                    <table id="log-list" class="table table-hover" style='table-layout:fixed;'>
+                        <thead>
+                        <tr>
+                            <th class="col-md-1">job name</th>
+                            <th class="col-md-2">job name</th>
+                            <th class="col-md-2">shell command</th>
+                            <th class="col-md-2">错误原因</th>
+                            <th class="col-md-2">执行结果</th>
+                            <th class="col-md-1">附属IP</th>
+                            <th class="col-md-2">开始执行时间</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="detail-model" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content" style="word-wrap:break-word;">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="myModalLabel">Err Log OutPut</h4>
+            </div>
+            <div class="modal-body" style="font-size: 18px;">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+<script src="../js/jquery.min.js"></script>
+<script src="../js/bootstrap.min.js"></script>
+<script src="../js/sweetalert.min.js"></script>
+<script src="../js/moment.min.js"></script>
+<script src="../js/bootstrap-select.min.js"></script>
+<script src="../js/general.js"></script>
+<script>
+    $(document).ready(function () {
+        function dateFormat(timestamp) {
+            return new moment(timestamp).format('YYYY-MM-DD HH:mm:ss.SSS')
+        }
+
+        let lazyTbody = $("#log-list tbody");
+        let count = 1;
+        let pageNum = 1;
+
+        function lazyLoadTbodyData(pageNum) {
+            $.ajax({
+                url: '/job/err-log',
+                type: 'get',
+                dataType: 'json',
+                data: {skip: pageNum - 1},
+                beforeSend: function () {
+                    $("#loading").html("<img src='/jqueryStu/images/loading.gif' />");
+                },
+                success: function (resp) {
+                    $("#loading").empty();
+                    if (resp.errno != 0) {
+                        return
+                    }
+
+                    var logList = resp.data;
+                    // 遍历任务填充table
+                    for (var i = 0; i < logList.length; ++i) {
+                        var log = logList[i];
+                        var tr = $("<tr>")
+                        tr.append($('<td>').html(count));
+                        count++;
+                        tr.append($('<td class="log-job-name show-model">').html(log.jobName));
+                        tr.append($('<td class="log-command show-model">').html(log.command));
+                        tr.append($('<td style="color: red;"  class="log-err">').html(log.err));
+                        tr.append($('<td class="log-output show-model">').html(log.output));
+                        tr.append($('<td class="log-affiliatedIp">').html(log.affiliatedIp));
+                        tr.append($('<td class="log-starttime">').html(dateFormat(log.starttime)));
+
+                        lazyTbody.append(tr)
+                    }
+                }
+            });
+            $('table').on('click', '.show-model', function () {
+                var that = $(this);
+                $('#detail-model').modal();
+
+                // 将字符串转换为原本换行 空格格式
+                var breakText = that
+                    .text()
+                    .trim()
+                    .replace(/\r\n/g, "<br>")
+                    .replace(/\n/g, "<br>")
+                    .replace(/\s/g, "&nbsp;")
+
+                $('.modal-body').html(breakText)
+            });
+        }
+
+        // 先执行一次
+        lazyLoadTbodyData(pageNum)
+
+        // 滚动事件 当大小大于document长度时，加载下页数据
+        $(window).scroll(function () {
+            let scrollTop = $(this).scrollTop();
+            let scrollHight = $(document).height();
+            let windowHight = $(this).height();
+
+            if (Math.ceil(scrollTop + windowHight) >= scrollHight) {
+                lazyLoadTbodyData(pageNum)
+                // 页数自加1
+                pageNum++;
+            }
+        })
+    }())
+</script>
+</html>

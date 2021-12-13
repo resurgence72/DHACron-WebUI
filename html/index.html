@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>17 OPS-Crontab</title>
+    <!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/3.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/bootstrap-select.min.css">
+    <link rel="stylesheet" href="../css/general.css">
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="page-header">
+                <h1>Crontab 管理 <small>Crontab Manager</small></h1>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-footer">
+
+            <div class="row">
+                <div class="col-md-12">
+                    <h4 id="total-cron" class="col-md-4"></h4>
+                    <h4 id="success-cron" style="color: green;" class="col-md-4"></h4>
+                    <h4 id="enabled-cron" class="col-md-4"></h4>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <h4 id="percent" style="color: red;" class="col-md-4"></h4>
+                    <h4 id="error-cron" style="color: red;" class="col-md-4"></h4>
+                    <h4 id="disabled-cron" class="col-md-4"></h4>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="#">menu</a>
+                </div>
+
+                <ul class="nav nav-tabs">
+                    <li role="presentation" class="active"><a href="#">定时任务管理</a></li>
+                    <li role="presentation"><a href="/html/config.html">配置管理</a></li>
+                    <li role="presentation"><a href="/html/err_log.html">执行日志</a></li>
+                    <li role="presentation"><a href="/html/tty-audit.html">tty-审计</a></li>
+                </ul>
+
+            </div>
+        </div>
+    </nav>
+
+
+    <div class="row">
+        <div class="col-md-12">
+            <button type="button" id="new-job" class="btn btn-primary col-md-1">新建任务</button>
+            <button type="button" id="health-worker-list" class="btn btn-success col-md-2">Node Discovery <span
+                        id="health-num"
+                        class="badge"></span>
+            </button>
+            <div class="input-group col-md-offset-9">
+                <input type="text" id="job-search-input" placeholder="输入Cron名搜索" class="form-control"><span
+                        id="job-search" class="input-group-addon btn btn-primary">搜索</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-default" style="margin-top: 20px">
+                <div class="panel-body">
+                    <table style="table-layout:fixed" class="table table-striped" id="job-list">
+                        <thead>
+                        <tr>
+                            <th>任务名称</th>
+                            <th>shell命令</th>
+                            <th>cron表达式</th>
+                            <th>cron类型</th>
+                            <th>超时时间</th>
+                            <th>超时单位</th>
+                            <th>下次调度时间</th>
+                            <th>报警回调方式</th>
+                            <th>ip绑定</th>
+                            <th>调度模式</th>
+                            <th>启用状态</th>
+                            <th class="col-md-3">操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--编辑添加模态框-->
+<div id="edit-modal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="edit-or-save"></h4>
+            </div>
+            <div class="modal-body">
+                <form action="">
+                    <input type="text" id="job-status" style="display: none">
+                    <div class="form-group">
+                        <label for="edit-name">任务名称</label>
+                        <input type="text" class="form-control none-check" id="edit-name" readonly placeholder="任务名称">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-command">shell 命令</label>
+                        <input type="text" class="form-control none-check" id="edit-command" placeholder="shell命令">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-cronExpr">cron 表达式</label>
+                        <input type="text" class="form-control none-check" id="edit-cronExpr" placeholder="cron表达式">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-cronType">cron 类型</label>
+                        <select id="edit-cronType" class="form-control selectpicker">
+                            <option data-toggle="popover" data-trigger="focus" title="[定时任务] 轮询执行任务" selected value="0">
+                                定时任务
+                            </option>
+                            <option data-toggle="popover" data-trigger="focus" title="[延迟任务] 延迟执行一次" value="1">延迟任务
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-ipBind">IP 绑定 <a data-toggle="popover" data-trigger="focus"
+                                                          title="crontab只在被绑定IP上执行">?</a></label>
+                        <input type="text" class="form-control" id="edit-ipBind"
+                               placeholder="10.0.0.1/24，或10.0.0.1，多个以逗号分隔，默认不限制">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-timeOut">command 超时时间</label>
+                        <input type="number" class="form-control none-check" id="edit-timeOut" placeholder="超时时间">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-timeOutUnit">command 超时单位</label>
+                        <select id="edit-timeOutUnit" class="form-control selectpicker">
+                            <option data-toggle="popover" data-trigger="focus" value="0">ms</option>
+                            <option data-toggle="popover" data-trigger="focus" selected value="1">s</option>
+                            <option data-toggle="popover" data-trigger="focus" value="2">min</option>
+                            <option data-toggle="popover" data-trigger="focus" value="3">h</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="scheduler-type">cron调度模式</label>
+                        <select id="scheduler-type" class="selectpicker form-control">
+                            <option data-toggle="popover" data-trigger="focus" title="[单机] 任务只会调度到一个节点运行" selected
+                                    value="0">单机
+                            </option>
+                            <option data-toggle="popover" data-trigger="focus" title="[广播] 任务分发至所有节点执行" value="1">广播
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group alarm-type">
+                        <label for="alarm-type">报警回调方式</label>
+                        <select id="alarm-type" class="selectpicker form-control" multiple>
+                            <option data-toggle="popover" data-trigger="focus" title="[企微报警] ErrCron回调至企业微信" selected
+                                    value="0">企微报警
+                            </option>
+                            <option data-toggle="popover" data-trigger="focus" title="[Email报警] ErrCron回调至邮件" value="1">
+                                Email报警
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-cronWebHook">Web Hook</label>
+                        <input type="text" class="form-control" id="edit-cronWebHook"
+                               placeholder="任务结束后向指定webhook以post请求回调执行结果,默认为空">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-retryTime">重试次数</label>
+                        <input type="number" class="form-control" id="edit-retryTime"
+                               placeholder="出错后重试Cron,上下箭头增加/减少时间,默认不重试;">
+                    </div>
+
+                    <div class="form-group process-options">
+                        <label for="process-options">Cron进程相关选项</label>
+                        <select id="process-options" class="selectpicker form-control" multiple>
+                            <option data-toggle="popover" data-trigger="focus" title="[守护进程] 子进程不随主进程推出而退出" selected
+                                    value="0">守护进程
+                            </option>
+                            <option data-toggle="popover" data-trigger="focus" title="[并发执行] 支持相同长cron同时执行" value="1">
+                                并发执行
+                            </option>
+                        </select>
+                    </div>
+                </form>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="model-close" class="btn btn-default" data-dismiss="modal">关闭</button>
+                <button type="button" id="cron-test" class="btn btn-warning">测试</button>
+                <button type="button" id="save-job" class="btn btn-primary">保存</button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+<!--log list 模态框-->
+<div id="log-modal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">任务log</h4>
+            </div>
+            <div class="modal-body">
+                <table style="table-layout: fixed" id="log-list" class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th>shell command</th>
+                        <th>错误原因</th>
+                        <th>执行结果</th>
+                        <th>附属IP</th>
+                        <th>计划开始时间</th>
+                        <th>实际调度时间</th>
+                        <th>开始执行时间</th>
+                        <th>执行结束时间</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+
+                    </tbody>
+                </table>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+<!--健康节点模态框-->
+<div id="worker-modal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">Node Discovery</h4>
+            </div>
+            <div class="modal-body">
+                <table id="worker-list" class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th>节点IP</th>
+                        <th>CPU负载</th>
+                        <th>内存信息</th>
+                        <th>磁盘信息</th>
+                        <th>Boot Time</th>
+                        <th>goroutine数量</th>
+                        <th>元信息(主机名|平台|版本)</th>
+                        <th>节点worker版本</th>
+                        <th>TTY</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+
+</body>
+<script src="../js/jquery.min.js"></script>
+<script src="../js/bootstrap.min.js"></script>
+<script src="../js/sweetalert.min.js"></script>
+<script src="../js/moment.min.js"></script>
+<script src="../js/bootstrap-select.min.js"></script>
+<script src="../js/general.js"></script>
+<script src="../js/dhacron.js"></script>
+<script src="../js/ws.js"></script>
+<script src="../js/bootstrap-notify.min.js"></script>
+</html>

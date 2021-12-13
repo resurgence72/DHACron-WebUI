@@ -1,0 +1,9 @@
+@media (min-width: 900px) {
+    .modal-dialog {
+        width: 800px;
+        margin: 30px auto;
+    }
+    .modal-lg {
+        width: 1200px;
+    }
+}

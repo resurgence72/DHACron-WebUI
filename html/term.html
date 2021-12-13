@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Web-Shell</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/xterm/3.9.2/xterm.min.css" rel="stylesheet"/>
+    <link href="../css/fullscreen.min.css" rel="stylesheet"/>
+    <style>
+        html {
+            overflow-x: hidden;
+            overflow-y: hidden;
+        }
+
+        .terminal {
+            border: #000 solid 5px;
+            font-family: cursive;
+            font-size: 15px;
+        }
+
+        .reverse-video {
+            color: #000;
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+<div id="terms" style="height: 100vh;width: 100vw"></div>
+</body>
+<script src="../js/jquery.min.js"></script>
+<script src="../js/bootstrap.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/layer/3.1.1/layer.min.js"></script>
+<script src="../xterm/xterm.min.js"></script>
+<script src="../xterm/fullscreen.min.js"></script>
+<script src="../xterm/fit.min.js"></script>
+<script src="../xterm/search.min.js"></script>
+<script src="../xterm/webshell.js?"></script>
+</html>
